@@ -144,9 +144,6 @@ export default function App() {
       </main>
       <footer className="foot">
         The Money Lens — does this save or earn me more than it costs? · client-side only, your data never leaves the browser.
-        <div style={{ marginTop: 8 }}>
-          <button className="btn" style={{ padding: '4px 12px', fontSize: 12 }} onClick={() => setTab('howitworks')}>How it works</button>
-        </div>
       </footer>
       <Welcome open={showIntro} onClose={closeIntro} onStart={startIntro} />
       {toast && <div className="toast" role="status">{toast}</div>}
