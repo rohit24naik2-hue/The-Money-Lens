@@ -83,6 +83,36 @@ export async function deleteSubscription(id) {
   return r;
 }
 
+// Detect likely recurring subscriptions from imported transactions so the
+// Subscriptions tab is never empty after a CSV import. Groups transactions
+// already tagged SUBSCRIPTIONS by merchant and estimates a monthly cost.
+export async function detectSubscriptionsFromTransactions() {
+  const txns = await loadTransactions();
+  const groups = {};
+  for (const t of txns) {
+    if (t.category !== "SUBSCRIPTIONS") continue;
+    const key = (t.cleanMerchant || t.rawDescription || "").trim();
+    if (!key) continue;
+    if (!groups[key]) groups[key] = { name: key, total: 0, count: 0, months: new Set() };
+    groups[key].total += Number(t.amount) || 0;
+    groups[key].count += 1;
+    groups[key].months.add((t.date || "").slice(0, 7));
+  }
+  const result = Object.values(groups)
+    .filter((g) => g.count >= 2)
+    .map((g) => {
+      const months = g.months.size || 1;
+      return {
+        name: g.name,
+        count: g.count,
+        avgAmount: Math.round((g.total / g.count) * 100) / 100,
+        perMonth: Math.round(g.total / months),
+      };
+    })
+    .sort((a, b) => b.perMonth - a.perMonth);
+  return result;
+}
+
 // ---------- Sinking funds ----------
 export async function loadSinkingFunds() {
   return db.sinkingFunds.toArray();
@@ -117,6 +147,8 @@ export async function deleteDecision(id) {
 
 // ---------- Derived dashboard ----------
 export function buildDashboard(settings, transactions, subscriptions) {
+  transactions = transactions || [];
+  subscriptions = subscriptions || [];
   const takeHome = Number(settings?.monthlyTakeHome) || 0;
   const rate = Number(settings?.hourlyRate) || 0;
   const expenses = sumByCategory(transactions.filter((t) => t.amount >= 0));

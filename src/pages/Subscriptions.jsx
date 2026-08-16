@@ -5,12 +5,15 @@ import {
   addSubscription,
   updateSubscription,
   deleteSubscription,
+  detectSubscriptionsFromTransactions,
 } from "../lib/store.js";
+import { useLiveData } from "../lib/useLiveData.js";
 
 export default function Subscriptions() {
   const [subs, setSubs] = useState([]);
   const [form, setForm] = useState({ name: "", cost: "", billingCycle: "MONTHLY" });
   const [error, setError] = useState("");
+  const [detected] = useLiveData(detectSubscriptionsFromTransactions);
 
   async function load() {
     try {
@@ -27,6 +30,10 @@ export default function Subscriptions() {
     e.preventDefault();
     await addSubscription({ ...form, cost: Number(form.cost) });
     setForm({ name: "", cost: "", billingCycle: "MONTHLY" });
+    load();
+  }
+  async function addDetected(d) {
+    await addSubscription({ name: d.name, cost: d.perMonth, billingCycle: "MONTHLY" });
     load();
   }
   function setStatus(id, status) {
@@ -89,6 +96,33 @@ export default function Subscriptions() {
       </Card>
 
       {error && <div className="text-urgent text-sm">{error}</div>}
+
+      {(detected || []).length > 0 && (
+        <Card className="border-teal/40">
+          <div className="font-semibold mb-1">Detected from your transactions</div>
+          <p className="text-sm text-ink/60 mb-3">
+            Recurring charges we found in your imported data. Add them to start triaging.
+          </p>
+          <div className="space-y-2">
+            {(detected || []).map((d) => (
+              <div
+                key={d.name}
+                className="flex items-center justify-between rounded-lg bg-cream/50 px-3 py-2"
+              >
+                <div>
+                  <div className="font-medium">{d.name}</div>
+                  <div className="text-xs text-ink/50">
+                    ~${d.perMonth}/mo · seen {d.count}×
+                  </div>
+                </div>
+                <Button variant="teal" className="text-xs" onClick={() => addDetected(d)}>
+                  Add
+                </Button>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="grid md:grid-cols-2 gap-4">
         {subs.map((s) => (

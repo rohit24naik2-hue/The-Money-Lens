@@ -1,13 +1,10 @@
-import React, { useCallback } from "react";
+import React from "react";
 import { MetricCard, Card, ProgressBar, Badge } from "../components/ui.jsx";
 import { CATEGORIES } from "../lib/finance.js";
-import {
-  loadSettings,
-  loadTransactions,
-  loadSubscriptions,
-  buildDashboard,
-} from "../lib/store.js";
+import { loadSubscriptions, buildDashboard } from "../lib/store.js";
 import { useLiveData } from "../lib/useLiveData.js";
+import { useMoneyLens } from "../context/MoneyLensContext.jsx";
+import { useSettings } from "../context/SettingsContext.jsx";
 
 const CAT_TONES = {
   RENT: "teal",
@@ -19,19 +16,15 @@ const CAT_TONES = {
 };
 
 export default function Dashboard() {
-  const loader = useCallback(
-    () =>
-      Promise.all([loadSettings(), loadTransactions(), loadSubscriptions()]).then(
-        ([settings, transactions, subscriptions]) =>
-          buildDashboard(settings, transactions, subscriptions)
-      ),
-    []
-  );
-  const [data] = useLiveData(loader);
+  const { transactions } = useMoneyLens();
+  const { settings } = useSettings();
+  const [subscriptions] = useLiveData(loadSubscriptions);
+
+  const data = buildDashboard(settings, transactions, subscriptions);
 
   if (!data) return <div className="text-ink/50">Loading your real numbers…</div>;
 
-  const { settings, metrics, expenses, subscriptions, compound } = data;
+  const { metrics, expenses, compound } = data;
   const maxCat = Math.max(1, ...CATEGORIES.map((c) => expenses[c] || 0));
 
   return (
@@ -44,7 +37,7 @@ export default function Dashboard() {
       </header>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <MetricCard label="Take-Home Income" value={`$${settings.monthlyTakeHome}`} />
+        <MetricCard label="Take-Home Income" value={`$${data.settings.monthlyTakeHome}`} />
         <MetricCard
           label="Net Savings Rate"
           value={`${metrics.savingsRate.toFixed(1)}%`}
@@ -59,7 +52,7 @@ export default function Dashboard() {
         />
         <MetricCard
           label="Leaks Recovered"
-          value={`$${subscriptions.recovered}`}
+          value={`$${data.subscriptions.recovered}`}
           tone="positive"
           hint="from cut/merged subs"
         />

@@ -2,8 +2,8 @@ import React, { useState } from "react";
 import { Button, Card, Badge } from "../components/ui.jsx";
 import { parseBankCSV } from "../lib/csvParser.js";
 import { categorizeTransactions } from "../lib/categorizer.js";
-import { importTransactions } from "../lib/store.js";
 import { useSettings } from "../context/SettingsContext.jsx";
+import { useMoneyLens } from "../context/MoneyLensContext.jsx";
 
 const SAMPLE = `date,description,amount
 2026-01-02,SQ *COFFEE,4.50
@@ -13,6 +13,7 @@ const SAMPLE = `date,description,amount
 
 export default function Import() {
   const { settings } = useSettings();
+  const { addTransactions } = useMoneyLens();
   const [text, setText] = useState(SAMPLE);
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState(null);
@@ -46,7 +47,7 @@ export default function Import() {
     try {
       const rows = parseBankCSV(text);
       const result = await categorizeTransactions(rows, settings?.openaiApiKey);
-      const n = await importTransactions(result);
+      const n = await addTransactions(result);
       setMsg(`Imported ${n} transactions.`);
       setPreview(null);
     } catch (err) {
