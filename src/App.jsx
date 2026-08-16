@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { HashRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useSettings } from "./context/SettingsContext.jsx";
 import Layout from "./components/Layout.jsx";
 import Onboarding from "./components/Onboarding.jsx";
@@ -20,14 +20,14 @@ export default function App() {
 
   if (needsSetup) {
     return (
-      <BrowserRouter>
+      <HashRouter>
         <Onboarding />
-      </BrowserRouter>
+      </HashRouter>
     );
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Layout>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
@@ -38,7 +38,7 @@ export default function App() {
           <Route path="/assets" element={<Assets />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </Layout>
-    </BrowserRouter>
-  );
+        </Layout>
+      </HashRouter>
+    );
 }
