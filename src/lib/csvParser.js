@@ -161,7 +161,7 @@ const DATE_PATTERNS = [
   /\b[A-Za-z]{3,9}\s+\d{1,2}\b/,
 ];
 
-function findDate(line) {
+export function findDate(line) {
   for (const re of DATE_PATTERNS) {
     const m = re.exec(line);
     if (!m) continue;
@@ -176,7 +176,7 @@ function findDate(line) {
   return null;
 }
 
-function findAmount(s) {
+export function findAmount(s) {
   const re = /[-+]?\$?\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?|\(\s?\d{1,3}(?:,\d{3})*(?:\.\d{1,2})?\s?\)/g;
   let m;
   const cands = [];
@@ -249,16 +249,91 @@ function looksLikeDelimited(text) {
   const firstLine = (text.split(/\r?\n/)[0] || "").trim();
   const headerLike =
     /date|description|amount|merchant|payee|transaction|post\s*date|debit|credit/i.test(firstLine);
-  const delim = /[,;\t]/.test(firstLine);
+  const delim = /[,;\t|]/.test(firstLine);
   return headerLike && delim;
 }
 
-// Top-level entry: route clean CSV through the column mapper, otherwise attempt
-// per-line free-form extraction. Returns the same row shape as parseBankCSV.
+// Detect a consistent delimiter across most lines (headerless exports).
+function detectDelimiter(text) {
+  const lines = text.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 2) return null;
+  const counts = { ",": 0, "\t": 0, ";": 0, "|": 0 };
+  for (const l of lines) {
+    for (const d of Object.keys(counts)) if (l.includes(d)) counts[d]++;
+  }
+  let best = null;
+  let bestN = 0;
+  for (const [d, n] of Object.entries(counts)) {
+    if (n > bestN) {
+      bestN = n;
+      best = d;
+    }
+  }
+  return bestN >= lines.length * 0.6 ? best : null;
+}
+
+// Parse delimiter-separated text with NO header row. We identify the date column
+// (first cell that looks like a date) and the amount column (first money-like
+// column that isn't the trailing/balance column), treating every other column as
+// the description. Handles extras like trailing balance/debit/credit columns.
+export function parseDelimitedNoHeader(text, delimiter) {
+  const parsed = Papa.parse(text, { delimiter, skipEmptyLines: true });
+  const rows = [];
+  for (const cells of parsed.data) {
+    if (!Array.isArray(cells) || cells.length < 2) continue;
+    let dateIdx = -1;
+    const amtCandidates = [];
+    cells.forEach((c, i) => {
+      const s = String(c).trim();
+      if (dateIdx < 0 && findDate(s)) dateIdx = i;
+      if (i !== dateIdx && findAmount(s)) amtCandidates.push(i);
+    });
+    if (dateIdx < 0 || amtCandidates.length === 0) continue;
+    // Prefer an amount column that isn't the trailing (often balance) column.
+    const lastCol = cells.length - 1;
+    const filtered = amtCandidates.filter((i) => i !== lastCol);
+    const amtIdx = (filtered.length ? filtered : amtCandidates)[0];
+    if (amtIdx === dateIdx) continue;
+
+    const iso = normalizeDate(cells[dateIdx]);
+    if (!iso) continue;
+    const amount = Math.abs(normalizeAmount(cells[amtIdx]));
+    const description = cells
+      .filter((_, i) => i !== dateIdx && i !== amtIdx)
+      .map((c) => String(c).trim())
+      .filter((c) => !/\b(bal|balance|running|cleared|available)\b/i.test(c))
+      .filter(Boolean)
+      .join(" ")
+      .replace(/\b(CR|DR)\b/gi, " ")
+      .replace(/[\s|#:.\-–—,]+/g, " ")
+      .replace(/\s{2,}/g, " ")
+      .trim() || "Unknown Merchant";
+
+    const category = categorizeTransaction(description);
+    const cleanMerchant = cleanMerchantName(description);
+    rows.push({
+      id: (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+      date: iso,
+      rawDescription: description,
+      cleanMerchant,
+      amount,
+      category: CATEGORIES.includes(category) ? category : "OTHER",
+      needsReview: category === "OTHER",
+      intent: null,
+    });
+  }
+  return rows;
+}
+
+// Top-level entry: route clean CSV through the column mapper, headerless
+// delimited through positional parsing, otherwise attempt per-line free-form
+// extraction. Returns the same row shape as parseBankCSV.
 export function parseAnyFormat(raw) {
   const text = (raw || "").trim();
   if (!text) return [];
   if (looksLikeDelimited(text)) return parseBankCSV(text);
+  const delim = detectDelimiter(text);
+  if (delim) return parseDelimitedNoHeader(text, delim);
   return text
     .split(/\r?\n/)
     .map((l) => l.trim())
