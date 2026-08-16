@@ -3,6 +3,7 @@ import { NavLink } from "react-router-dom";
 import { useSettings } from "../context/SettingsContext.jsx";
 import { Button } from "./ui.jsx";
 import DataControls from "./DataControls.jsx";
+import { clearAll } from "../lib/store.js";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
@@ -12,8 +13,14 @@ const NAV = [
 ];
 
 export default function Layout({ children }) {
-  const { setEditing } = useSettings();
+  const { setEditing, loadSettings } = useSettings();
   const [showData, setShowData] = useState(false);
+
+  async function doReset() {
+    if (!confirm("Reset ALL data? This erases every transaction, subscription, and your settings, and returns you to setup. This cannot be undone.")) return;
+    await clearAll();
+    await loadSettings();
+  }
 
   return (
     <div className="min-h-screen flex">
@@ -36,6 +43,13 @@ export default function Layout({ children }) {
               {n.label}
             </NavLink>
           ))}
+          <button
+            type="button"
+            onClick={doReset}
+            className="block w-full text-left rounded-lg px-3 py-2 text-sm font-medium text-red-300 hover:bg-red-500/20"
+          >
+            Reset all data
+          </button>
         </nav>
         <div className="px-5 py-4 space-y-2">
           <Button

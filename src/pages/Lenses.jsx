@@ -5,11 +5,11 @@ import {
   useSettings,
   getHourlyRate,
 } from "../context/SettingsContext.jsx";
-import { loadDecisions, addDecision, deleteDecision, clearAll } from "../lib/store.js";
+import { loadDecisions, addDecision, deleteDecision } from "../lib/store.js";
 import { useLiveData } from "../lib/useLiveData.js";
 
 export default function Lenses() {
-  const { settings, setSettings, loadSettings } = useSettings();
+  const { settings, setSettings } = useSettings();
   const [hourly, setHourly] = useState(getHourlyRate(settings));
   const [aiForm, setAiForm] = useState({ cost: "", hours: "" });
   const [aiResult, setAiResult] = useState(null);
@@ -44,12 +44,6 @@ export default function Lenses() {
 
   async function logDecision(text, verdict) {
     await addDecision({ lensId: "lenses", text, verdict });
-  }
-
-  async function doReset() {
-    if (!confirm("Reset ALL data? This erases every transaction, subscription, and your settings, and returns you to setup. This cannot be undone.")) return;
-    await clearAll();
-    await loadSettings();
   }
 
   if (!settings) return <div className="text-ink/50">Loading…</div>;
@@ -252,21 +246,6 @@ export default function Lenses() {
           </div>
         </Card>
       </div>
-
-      <Card className="bg-cream/40 border border-ink/10">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          <div>
-            <div className="font-semibold">Reset everything</div>
-            <p className="text-xs text-ink/60 mt-1">
-              Erases all transactions, subscriptions, and your settings, and returns you to setup. Cannot
-              be undone.
-            </p>
-          </div>
-          <Button variant="danger" onClick={doReset}>
-            Reset all data
-          </Button>
-        </div>
-      </Card>
     </div>
   );
 }
