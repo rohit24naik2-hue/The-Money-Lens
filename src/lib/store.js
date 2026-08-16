@@ -12,12 +12,18 @@ const uid = () =>
   (crypto.randomUUID && crypto.randomUUID()) ||
   `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
+// Reactivity: every mutation dispatches a window event so any view listening
+// (see useLiveData) re-renders live without a page refresh.
+import { notifyDataChanged } from "./events.js";
+
 // ---------- Settings ----------
 export async function loadSettings() {
   return db.settings.get(SETTINGS_ID);
 }
 export async function saveSettings(settings) {
-  return db.settings.put({ id: SETTINGS_ID, ...settings });
+  const r = await db.settings.put({ id: SETTINGS_ID, ...settings });
+  notifyDataChanged();
+  return r;
 }
 
 // ---------- Transactions ----------
@@ -36,13 +42,18 @@ export async function importTransactions(rows) {
     needsReview: !!r.needsReview,
   }));
   await db.transactions.bulkAdd(txns);
+  notifyDataChanged();
   return txns.length;
 }
 export async function updateTransaction(id, patch) {
-  return db.transactions.update(id, patch);
+  const r = await db.transactions.update(id, patch);
+  notifyDataChanged();
+  return r;
 }
 export async function clearTransactions() {
-  return db.transactions.clear();
+  const r = await db.transactions.clear();
+  notifyDataChanged();
+  return r;
 }
 
 // ---------- Subscriptions ----------
@@ -58,13 +69,18 @@ export async function loadSubscriptions() {
 export async function addSubscription(data) {
   const id = uid();
   await db.subscriptions.add({ id, ...data });
+  notifyDataChanged();
   return id;
 }
 export async function updateSubscription(id, patch) {
-  return db.subscriptions.update(id, patch);
+  const r = await db.subscriptions.update(id, patch);
+  notifyDataChanged();
+  return r;
 }
 export async function deleteSubscription(id) {
-  return db.subscriptions.delete(id);
+  const r = await db.subscriptions.delete(id);
+  notifyDataChanged();
+  return r;
 }
 
 // ---------- Sinking funds ----------
@@ -74,10 +90,13 @@ export async function loadSinkingFunds() {
 export async function addSinkingFund(data) {
   const id = uid();
   await db.sinkingFunds.add({ id, ...data });
+  notifyDataChanged();
   return id;
 }
 export async function updateSinkingFund(id, patch) {
-  return db.sinkingFunds.update(id, patch);
+  const r = await db.sinkingFunds.update(id, patch);
+  notifyDataChanged();
+  return r;
 }
 
 // ---------- Decision logs ----------
@@ -87,10 +106,13 @@ export async function loadDecisions() {
 export async function addDecision(data) {
   const id = uid();
   await db.decisionLogs.add({ id, date: new Date().toISOString().slice(0, 10), ...data });
+  notifyDataChanged();
   return id;
 }
 export async function deleteDecision(id) {
-  return db.decisionLogs.delete(id);
+  const r = await db.decisionLogs.delete(id);
+  notifyDataChanged();
+  return r;
 }
 
 // ---------- Derived dashboard ----------
@@ -137,6 +159,7 @@ export async function importData(json) {
   if (Array.isArray(data.subscriptions)) await db.subscriptions.bulkPut(data.subscriptions);
   if (Array.isArray(data.sinkingFunds)) await db.sinkingFunds.bulkPut(data.sinkingFunds);
   if (Array.isArray(data.decisionLogs)) await db.decisionLogs.bulkPut(data.decisionLogs);
+  notifyDataChanged();
 }
 export async function clearAll() {
   await Promise.all([
@@ -146,6 +169,7 @@ export async function clearAll() {
     db.sinkingFunds.clear(),
     db.decisionLogs.clear(),
   ]);
+  notifyDataChanged();
 }
 
 export { uid };
@@ -299,6 +323,7 @@ export async function seedDemoData() {
   await db.subscriptions.bulkPut(subscriptions);
   await db.sinkingFunds.bulkPut(sinkingFunds);
   await db.decisionLogs.bulkPut(decisionLogs);
+  notifyDataChanged();
 
   return {
     transactions: transactions.length,

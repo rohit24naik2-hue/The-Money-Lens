@@ -1,63 +1,9 @@
 // Client-side transaction categorization. No server involved.
 // Uses the user's own OpenAI key (stored locally) when provided, otherwise
-// falls back to a deterministic keyword categorizer so the app works offline.
+// relies on the deterministic categorization already applied by csvParser.
 
 import { CATEGORIES } from "./finance.js";
-
-const KEYWORDS = {
-  RENT: ["rent", "lease", "landlord", "apartment", "mortgage", "housing"],
-  FOOD: [
-    "grocery", "groceries", "supermarket", "food", "restaurant", "cafe", "coffee",
-    "doordash", "uber eats", "grubhub", "mcdonald", "chipotle", "starbucks",
-    "whole foods", "trader joe", "safeway", "costco", "walmart", "dining",
-  ],
-  SUBSCRIPTIONS: [
-    "netflix", "spotify", "disney", "hulu", "youtube", "apple music", "adobe",
-    "notion", "figma", "github", "chatgpt", "openai", "anthropic", "subscription",
-    "membership", "prime", "audible", "peloton",
-  ],
-  TRANSPORT: [
-    "uber", "lyft", "gas", "shell", "chevron", "transit", "metro", "train",
-    "parking", "toll", "fuel", "car", "auto", "bike",
-  ],
-  FUN: [
-    "movie", "cinema", "steam", "playstation", "xbox", "nintendo", "game",
-    "concert", "ticket", "bar", "pub", "club", "travel", "hotel", "airbnb",
-    "event", "hobby",
-  ],
-  OTHER: [],
-};
-
-export function normalizeMerchant(raw) {
-  let s = (raw || "").replace(/^(sq|sq\*|sq\s?\*)\s*/i, "");
-  s = s.replace(/\b\d{4}\b/g, "").trim();
-  s = s.replace(/\s+/g, " ").trim();
-  return s || raw || "Unknown";
-}
-
-function localCategorize(rows) {
-  return rows.map((row) => {
-    const raw = row.rawDescription || row.description || "";
-    const text = raw.toLowerCase();
-    let winner = "OTHER";
-    let max = 0;
-    for (const [cat, words] of Object.entries(KEYWORDS)) {
-      let score = 0;
-      for (const w of words) if (text.includes(w.toLowerCase())) score++;
-      if (score > max) {
-        max = score;
-        winner = cat;
-      }
-    }
-    return {
-      rawDescription: raw,
-      cleanMerchant: normalizeMerchant(raw),
-      category: winner,
-      needsReview: max === 0,
-      intent: null,
-    };
-  });
-}
+import { categorizeTransaction, cleanMerchantName } from "./csvParser.js";
 
 async function openAiCategorize(rows, apiKey) {
   const payload = rows.map((r) => r.rawDescription || r.description || "");
@@ -89,13 +35,15 @@ Respond ONLY with JSON: an array of objects with keys rawDescription, cleanMerch
   const arr = Array.isArray(parsed) ? parsed : parsed.results || parsed.transactions;
   return arr.map((x) => ({
     rawDescription: x.rawDescription,
-    cleanMerchant: x.cleanMerchant || normalizeMerchant(x.rawDescription),
+    cleanMerchant: x.cleanMerchant || cleanMerchantName(x.rawDescription),
     category: (x.category || "OTHER").toUpperCase(),
     needsReview: !!x.needsReview,
     intent: x.intent ? x.intent.toUpperCase() : null,
   }));
 }
 
+// `rows` are expected to already be parsed + locally categorized by csvParser.
+// If an API key is present we refine with OpenAI, otherwise pass through.
 export async function categorizeTransactions(rows, apiKey) {
   if (apiKey) {
     try {
@@ -104,5 +52,7 @@ export async function categorizeTransactions(rows, apiKey) {
       console.warn("OpenAI categorization failed, using local fallback:", e.message);
     }
   }
-  return localCategorize(rows);
+  return rows;
 }
+
+export { categorizeTransaction, cleanMerchantName };

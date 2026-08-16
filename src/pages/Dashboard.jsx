@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback } from "react";
 import { MetricCard, Card, ProgressBar, Badge } from "../components/ui.jsx";
 import { CATEGORIES } from "../lib/finance.js";
 import {
@@ -7,6 +7,7 @@ import {
   loadSubscriptions,
   buildDashboard,
 } from "../lib/store.js";
+import { useLiveData } from "../lib/useLiveData.js";
 
 const CAT_TONES = {
   RENT: "teal",
@@ -18,15 +19,15 @@ const CAT_TONES = {
 };
 
 export default function Dashboard() {
-  const [data, setData] = useState(null);
-
-  useEffect(() => {
-    Promise.all([loadSettings(), loadTransactions(), loadSubscriptions()])
-      .then(([settings, transactions, subscriptions]) => {
-        setData(buildDashboard(settings, transactions, subscriptions));
-      })
-      .catch(() => setData(buildDashboard(null, [], [])));
-  }, []);
+  const loader = useCallback(
+    () =>
+      Promise.all([loadSettings(), loadTransactions(), loadSubscriptions()]).then(
+        ([settings, transactions, subscriptions]) =>
+          buildDashboard(settings, transactions, subscriptions)
+      ),
+    []
+  );
+  const [data] = useLiveData(loader);
 
   if (!data) return <div className="text-ink/50">Loading your real numbers…</div>;
 

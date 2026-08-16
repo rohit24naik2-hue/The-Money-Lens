@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import Papa from "papaparse";
 import { Button, Card, Badge } from "../components/ui.jsx";
+import { parseBankCSV } from "../lib/csvParser.js";
 import { categorizeTransactions } from "../lib/categorizer.js";
 import { importTransactions } from "../lib/store.js";
 import { useSettings } from "../context/SettingsContext.jsx";
@@ -30,7 +30,7 @@ export default function Import() {
     setBusy(true);
     setMsg("");
     try {
-      const rows = parseRows(text);
+      const rows = parseBankCSV(text);
       const result = await categorizeTransactions(rows, settings?.openaiApiKey);
       setPreview(result);
     } catch (err) {
@@ -44,7 +44,7 @@ export default function Import() {
     setBusy(true);
     setMsg("");
     try {
-      const rows = parseRows(text);
+      const rows = parseBankCSV(text);
       const result = await categorizeTransactions(rows, settings?.openaiApiKey);
       const n = await importTransactions(result);
       setMsg(`Imported ${n} transactions.`);
@@ -118,29 +118,3 @@ export default function Import() {
   );
 }
 
-// Parse pasted CSV (date, description, amount) into row objects.
-function parseRows(text) {
-  const parsed = Papa.parse(text.trim(), { skipEmptyLines: true });
-  const lines = parsed.data;
-  if (!lines.length) return [];
-  const header = lines[0].map((c) => String(c).toLowerCase());
-  const dateIdx = header.findIndex((h) => h.includes("date"));
-  const amtIdx = header.findIndex((h) => h.includes("amount"));
-  const start = header.length >= 2 ? 1 : 0;
-
-  const rows = [];
-  for (let i = start; i < lines.length; i++) {
-    const cols = lines[i];
-    if (!Array.isArray(cols) || cols.length < 2) continue;
-    const descCols =
-      dateIdx >= 0
-        ? cols.filter((_, idx) => idx !== dateIdx && idx !== amtIdx)
-        : cols.slice(0, -1);
-    rows.push({
-      date: dateIdx >= 0 ? cols[dateIdx] : cols[0],
-      rawDescription: descCols.join(" ").trim(),
-      amount: amtIdx >= 0 ? parseFloat(cols[amtIdx]) || 0 : 0,
-    });
-  }
-  return rows;
-}

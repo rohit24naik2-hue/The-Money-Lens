@@ -138,6 +138,34 @@ export function cryptoMonthlyCap(monthlyTakeHome) {
   };
 }
 
+// Insurance crossover: term-life needs ~10x annual income; premium is "reasonable"
+// when it stays under ~5% of monthly take-home. Whole/universal life flagged.
+export function insuranceGuardrail({ monthlyPremium, monthlyTakeHome, product = "TERM" }) {
+  const takeHome = Number(monthlyTakeHome) || 0;
+  const premium = Number(monthlyPremium) || 0;
+  const annualIncome = takeHome * 12;
+  const recommendedTermLife = Math.round(annualIncome * 10);
+  const premiumCap = Math.round(takeHome * 0.05);
+  const overPaying = premium > premiumCap;
+  const wrongProduct = /WHOLE|UNIVERSAL|VARIABLE/i.test(product);
+  return {
+    recommendedTermLife,
+    premiumCap,
+    overPaying,
+    wrongProduct,
+    verdict: wrongProduct
+      ? "avoid — buy term life instead"
+      : overPaying
+      ? "overpaying — shop a cheaper term policy"
+      : "reasonable",
+    message: wrongProduct
+      ? "Skip whole/universal life. Buy level TERM life (~10x income) and invest the difference."
+      : overPaying
+      ? `Premium $${premium}/mo exceeds the ~$${premiumCap}/mo sane cap for your income.`
+      : `Term life ~$${recommendedTermLife.toLocaleString()} coverage is appropriate; premium is within bounds.`,
+  };
+}
+
 // Capital priority pipeline allocation suggestion.
 export function capitalPipeline({ takeHome, recovered }) {
   return {

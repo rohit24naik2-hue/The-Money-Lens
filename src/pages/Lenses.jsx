@@ -1,24 +1,33 @@
-import React, { useEffect, useState } from "react";
-import { Button, Card, Badge, Input, Label, Textarea } from "../components/ui.jsx";
-import { rentVsBuy, aiToolVerdict, cryptoMonthlyCap } from "../lib/finance.js";
+import React, { useEffect, useState, useCallback } from "react";
+import { Button, Card, Badge, Input, Label } from "../components/ui.jsx";
+import { rentVsBuy, aiToolVerdict, cryptoMonthlyCap, insuranceGuardrail } from "../lib/finance.js";
 import {
   useSettings,
   getHourlyRate,
 } from "../context/SettingsContext.jsx";
 import { loadDecisions, addDecision, deleteDecision } from "../lib/store.js";
+import { useLiveData } from "../lib/useLiveData.js";
 
 export default function Lenses() {
   const { settings, setSettings } = useSettings();
   const [hourly, setHourly] = useState(getHourlyRate(settings));
-  const [decisions, setDecisions] = useState([]);
   const [aiForm, setAiForm] = useState({ cost: "", hours: "" });
+  const [aiResult, setAiResult] = useState(null);
+  const [rvbForm, setRvbForm] = useState({
+    homePrice: "",
+    downPct: "20",
+    rent: settings?.monthlyRent || "",
+    years: "5",
+    roomRent: "0",
+  });
+  const [insForm, setInsForm] = useState({ premium: "", product: "TERM" });
 
-  async function load() {
-    setDecisions(await loadDecisions());
-  }
+  const loader = useCallback(() => loadDecisions(), []);
+  const [decisions] = useLiveData(loader);
+
   useEffect(() => {
-    load();
-  }, []);
+    if (settings && !rvbForm.rent) setRvbForm((f) => ({ ...f, rent: settings.monthlyRent }));
+  }, [settings, rvbForm.rent]);
 
   function saveRate() {
     setSettings({ ...settings, hourlyRate: Number(hourly) });
@@ -32,17 +41,26 @@ export default function Lenses() {
     });
     setAiResult(v);
   }
-  const [aiResult, setAiResult] = useState(null);
 
   async function logDecision(text, verdict) {
     await addDecision({ lensId: "lenses", text, verdict });
-    load();
   }
 
   if (!settings) return <div className="text-ink/50">Loading…</div>;
 
-  const rvb = rentVsBuy({ monthlyRent: settings.monthlyRent, hourlyRate: getHourlyRate(settings) });
+  const rvb = rentVsBuy({
+    homePrice: Number(rvbForm.homePrice),
+    downPct: Number(rvbForm.downPct) / 100,
+    monthlyRent: Number(rvbForm.rent),
+    roomRent: Number(rvbForm.roomRent),
+    years: Number(rvbForm.years),
+  });
   const crypto = cryptoMonthlyCap(settings.monthlyTakeHome);
+  const ins = insuranceGuardrail({
+    monthlyPremium: insForm.premium,
+    monthlyTakeHome: settings.monthlyTakeHome,
+    product: insForm.product,
+  });
 
   return (
     <div className="space-y-6">
@@ -67,17 +85,46 @@ export default function Lenses() {
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
-          <div className="font-semibold">Rent vs. Buy</div>
-          <p className="text-sm text-ink/60 mt-1">Monthly rent ${settings.monthlyRent} →</p>
-          <div className="mt-2 text-sm">
+          <div className="font-semibold">Real Estate — 5-Year Test</div>
+          <p className="text-sm text-ink/60 mt-1">Does buying beat renting over your horizon?</p>
+          <div className="mt-3 grid grid-cols-2 gap-3 items-end">
+            <div>
+              <Label>Home price</Label>
+              <Input type="number" value={rvbForm.homePrice} onChange={(e) => setRvbForm({ ...rvbForm, homePrice: e.target.value })} placeholder="450000" />
+            </div>
+            <div>
+              <Label>Down %</Label>
+              <Input type="number" value={rvbForm.downPct} onChange={(e) => setRvbForm({ ...rvbForm, downPct: e.target.value })} />
+            </div>
+            <div>
+              <Label>Est. rent/mo</Label>
+              <Input type="number" value={rvbForm.rent} onChange={(e) => setRvbForm({ ...rvbForm, rent: e.target.value })} />
+            </div>
+            <div>
+              <Label>Horizon (yrs)</Label>
+              <Input type="number" value={rvbForm.years} onChange={(e) => setRvbForm({ ...rvbForm, years: e.target.value })} />
+            </div>
+            <div>
+              <Label>House-hack income/mo</Label>
+              <Input type="number" value={rvbForm.roomRent} onChange={(e) => setRvbForm({ ...rvbForm, roomRent: e.target.value })} />
+            </div>
+          </div>
+          <div className="mt-3 text-sm">
             {rvb.buyWins ? (
-              <Badge tone="positive">Buying may be better: ${rvb.ownMonthly}/mo all-in vs ${rvb.rentMonthly}/mo rent</Badge>
+              <Badge tone="positive">Buying wins: ${rvb.ownMonthly}/mo all-in vs ${rvb.rentMonthly}/mo rent</Badge>
+            ) : rvb.homePrice > 0 ? (
+              <Badge tone="amber">Renting wins: ${rvb.rentMonthly}/mo vs ${rvb.ownMonthly}/mo to own</Badge>
             ) : (
-              <Badge tone="amber">Renting keeps you flexible: ${rvb.rentMonthly}/mo vs ${rvb.ownMonthly}/mo to own</Badge>
+              <Badge tone="amber">Enter a home price to compare vs ${rvb.rentMonthly}/mo rent</Badge>
+            )}
+            {rvb.homePrice > 0 && Number(rvbForm.years) < 5 && (
+              <div className="mt-2 text-xs text-ink/60">
+                Horizon &lt; 5 yrs — closing costs typically eat buying gains. Renting is safer.
+              </div>
             )}
           </div>
           <div className="mt-3">
-            <Button variant="ghost" onClick={() => logDecision(`Rent vs Buy review — ${rvb.buyWins ? "buy" : "rent"}`, rvb.buyWins ? "buy" : "rent")}>
+            <Button variant="ghost" onClick={() => logDecision(`Rent vs Buy (${rvbForm.years}y) — ${rvb.buyWins ? "buy" : "rent"}`, rvb.buyWins ? "buy" : "rent")}>
               Log this insight
             </Button>
           </div>
@@ -124,18 +171,55 @@ export default function Lenses() {
           </div>
         </Card>
 
-        <Card className="bg-ink text-cream">
+        <Card>
+          <div className="font-semibold">Insurance Crossover</div>
+          <p className="text-sm text-ink/60 mt-1">Term life ~10x income; avoid whole/universal life.</p>
+          <div className="mt-3 flex gap-3 items-end flex-wrap">
+            <div>
+              <Label>Monthly premium</Label>
+              <Input type="number" value={insForm.premium} onChange={(e) => setInsForm({ ...insForm, premium: e.target.value })} />
+            </div>
+            <div>
+              <Label>Product</Label>
+              <select
+                className="rounded-lg border border-ink/20 bg-white px-3 py-2 text-sm"
+                value={insForm.product}
+                onChange={(e) => setInsForm({ ...insForm, product: e.target.value })}
+              >
+                <option>TERM</option>
+                <option>WHOLE</option>
+                <option>UNIVERSAL</option>
+              </select>
+            </div>
+          </div>
+          {insForm.premium && (
+            <div className="mt-3 space-y-1 text-sm">
+              <Badge tone={ins.wrongProduct || ins.overPaying ? "urgent" : "positive"}>{ins.verdict}</Badge>
+              <div className="text-ink/60">{ins.message}</div>
+              <div className="text-xs text-ink/50">Recommended term-life coverage: ${ins.recommendedTermLife.toLocaleString()}</div>
+            </div>
+          )}
+          {insForm.premium && (
+            <div className="mt-2">
+              <Button variant="ghost" onClick={() => logDecision(`Insurance (${insForm.product}) — ${ins.verdict}`, ins.verdict)}>
+                Log this insight
+              </Button>
+            </div>
+          )}
+        </Card>
+
+        <Card className="bg-ink text-cream md:col-span-2">
           <div className="font-semibold">Decision Log</div>
           <p className="text-xs text-cream/60 mt-1">Everything you've judged through the Lens.</p>
           <div className="mt-3 space-y-2">
-            {decisions.length === 0 && <div className="text-xs text-cream/40">No decisions logged yet.</div>}
-            {decisions.map((d) => (
+            {(!decisions || decisions.length === 0) && <div className="text-xs text-cream/40">No decisions logged yet.</div>}
+            {(decisions || []).map((d) => (
               <div key={d.id} className="flex justify-between items-center text-sm">
                 <span className="text-cream/80">{d.text}</span>
                 <Button
                   variant="ghost"
                   className="text-cream/50 text-xs"
-                  onClick={() => deleteDecision(d.id).then(load)}
+                  onClick={() => deleteDecision(d.id)}
                 >
                   ×
                 </Button>
