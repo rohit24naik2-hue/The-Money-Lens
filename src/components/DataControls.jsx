@@ -1,9 +1,11 @@
 import React, { useRef, useState } from "react";
 import { Button } from "./ui.jsx";
 import { exportData, importData, clearAll, seedDemoData } from "../lib/store.js";
+import { useSettings } from "../context/SettingsContext.jsx";
 
 export default function DataControls({ onChanged }) {
   const fileRef = useRef(null);
+  const { loadSettings } = useSettings();
   const [msg, setMsg] = useState("");
 
   async function doExport() {
@@ -33,9 +35,10 @@ export default function DataControls({ onChanged }) {
   }
 
   async function doClear() {
-    if (!confirm("Erase ALL local data? This cannot be undone.")) return;
+    if (!confirm("Reset ALL data? This erases every transaction, subscription, and your settings, and returns you to setup. This cannot be undone.")) return;
     await clearAll();
-    setMsg("All local data cleared.");
+    await loadSettings();
+    setMsg("All data reset.");
     onChanged && onChanged();
   }
 
@@ -64,7 +67,7 @@ export default function DataControls({ onChanged }) {
         onChange={doImport}
       />
       <Button variant="danger" onClick={doClear}>
-        Clear all data
+        Reset all data
       </Button>
       <Button variant="accent" onClick={doSeed}>
         Load demo data
