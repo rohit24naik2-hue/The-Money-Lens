@@ -81,64 +81,115 @@ export function normalizeDate(raw) {
   return s.slice(0, 10);
 }
 
-const HEADER_GROUPS = {
-  date: ["date", "transactiondate", "transdate", "postdate", "posteddate", "posted", "settlementdate", "valuedate"],
-  description: ["description", "name", "payee", "memo", "details", "narration", "merchant", "particulars"],
-  amount: ["amount", "amt", "value"],
-  debit: ["debit", "withdrawal", "withdrawals", "paidout"],
-  credit: ["credit", "deposit", "deposits", "paidin"],
+// Fuzzy alias matching: a bank might call the date "Posting Date", "Txn Date",
+// "Value Date", etc. We normalize each header (lowercase, strip punctuation) and
+// match if it contains any alias, so we don't depend on exact header strings.
+const HEADER_ALIASES = {
+  date: [
+    "date", "txn date", "transaction date", "trans date", "posting date", "posted date",
+    "post date", "effective date", "value date", "val date", "settlement date",
+  ],
+  description: [
+    "description", "desc", "narration", "details", "transaction details", "memo",
+    "name", "payee", "merchant", "particulars",
+  ],
+  amount: ["amount", "txn amount", "transaction amount", "amt", "net amount"],
+  debit: [
+    "debit", "debit amount", "withdrawal", "withdrawals", "paid out", "paidout",
+    "dr", "money out", "spent", "outflow",
+  ],
+  credit: [
+    "credit", "credit amount", "deposit", "deposits", "paid in", "paidin",
+    "cr", "money in", "received", "inflow",
+  ],
 };
 
-function pick(header, group) {
-  return group.find((h) => header.includes(h));
+function normalizeHeader(header) {
+  return String(header || "").toLowerCase().replace(/[^a-z0-9]/g, " ").trim();
+}
+
+// Match a candidate alias against a normalized header. Short tokens (<=2 chars
+// like "cr"/"dr") require word boundaries so "description" doesn't falsely match
+// "cr". Longer aliases use substring matching.
+function headerHasAlias(norm, candidate) {
+  if (candidate.length <= 2) {
+    return norm === candidate || new RegExp(`(^|\\s)${candidate}(\\s|$)`).test(norm);
+  }
+  return norm.includes(candidate);
+}
+
+function findHeaderMatch(headers, candidates) {
+  for (const raw of headers) {
+    const norm = normalizeHeader(raw);
+    if (candidates.some((c) => headerHasAlias(norm, c))) return raw;
+  }
+  return null;
 }
 
 export function parseBankCSV(input) {
   const parsed = Papa.parse(input, {
     header: true,
-    skipEmptyLines: true,
-    transformHeader: (h) => h.toLowerCase().trim().replace(/[^a-z0-9]/g, ""),
+    skipEmptyLines: "greedy",
+    transformHeader: (h) => h.trim(),
   });
 
-  const headers = parsed.meta.fields || [];
-  const map = {};
-  for (const [field, group] of Object.entries(HEADER_GROUPS)) {
-    map[field] = pick(headers.join("|"), group);
-  }
+  const headers = parsed.meta.fields || (parsed.data[0] ? Object.keys(parsed.data[0]) : []);
+  const dateKey = findHeaderMatch(headers, HEADER_ALIASES.date);
+  const descKey = findHeaderMatch(headers, HEADER_ALIASES.description);
+  const amountKey = findHeaderMatch(headers, HEADER_ALIASES.amount);
+  const debitKey = findHeaderMatch(headers, HEADER_ALIASES.debit);
+  const creditKey = findHeaderMatch(headers, HEADER_ALIASES.credit);
 
+  const skipCols = new Set([dateKey, descKey, amountKey, debitKey, creditKey].filter(Boolean));
   const rows = [];
+
   for (const row of parsed.data) {
     if (!row || typeof row !== "object") continue;
 
-    const date =
-      (map.date && row[map.date]) ||
-      (row["date"]) ||
-      new Date().toISOString().slice(0, 10);
+    let rawDescription = descKey ? row[descKey] : "";
+    if (!rawDescription || !String(rawDescription).trim()) {
+      const fallback = Object.entries(row).find(
+        ([k, v]) => !skipCols.has(k) && v && String(v).trim()
+      );
+      rawDescription = fallback ? fallback[1] : "Unknown Merchant";
+    }
+    const desc = String(rawDescription).trim();
+    if (!desc) continue;
 
-    const rawDescription =
-      (map.description && row[map.description]) ||
-      row["description"] ||
-      row["name"] ||
-      "Unknown Merchant";
+    const iso = normalizeDate(dateKey ? row[dateKey] : "");
 
     let amount = 0;
-    if (map.amount && row[map.amount] !== undefined && row[map.amount] !== "") {
-      amount = normalizeAmount(row[map.amount]);
-    } else {
-      const debit = map.debit && row[map.debit] ? normalizeAmount(row[map.debit]) : 0;
-      const credit = map.credit && row[map.credit] ? normalizeAmount(row[map.credit]) : 0;
-      amount = Math.max(debit, credit);
+    let type = "debit";
+    if (debitKey || creditKey) {
+      const debitVal = debitKey ? normalizeAmount(row[debitKey]) : 0;
+      const creditVal = creditKey ? normalizeAmount(row[creditKey]) : 0;
+      if (creditVal > 0) {
+        amount = creditVal;
+        type = "credit";
+      } else {
+        amount = debitVal;
+        type = "debit";
+      }
+    } else if (amountKey) {
+      const numeric = parseFloat(String(row[amountKey] || "0").replace(/[^0-9.-]/g, ""));
+      if (!isNaN(numeric)) {
+        amount = Math.abs(numeric);
+        type = numeric < 0 ? "debit" : "credit";
+      }
     }
 
-    const category = categorizeTransaction(rawDescription);
-    const cleanMerchant = cleanMerchantName(rawDescription);
+    if (amount <= 0) continue;
+
+    const category = categorizeTransaction(desc);
+    const cleanMerchant = cleanMerchantName(desc);
 
     rows.push({
       id: (crypto.randomUUID && crypto.randomUUID()) || `${Date.now()}-${Math.random().toString(16).slice(2)}`,
-      date: normalizeDate(date),
-      rawDescription: String(rawDescription),
+      date: iso,
+      rawDescription: desc,
       cleanMerchant,
       amount,
+      type,
       category: CATEGORIES.includes(category) ? category : "OTHER",
       needsReview: category === "OTHER",
       intent: null,
