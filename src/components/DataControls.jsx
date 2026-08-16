@@ -1,11 +1,9 @@
 import React, { useRef, useState } from "react";
 import { Button } from "./ui.jsx";
-import { exportData, importData, clearAll, seedDemoData } from "../lib/store.js";
-import { useSettings } from "../context/SettingsContext.jsx";
+import { exportData, importData, seedDemoData } from "../lib/store.js";
 
 export default function DataControls({ onChanged }) {
   const fileRef = useRef(null);
-  const { loadSettings } = useSettings();
   const [msg, setMsg] = useState("");
 
   async function doExport() {
@@ -34,14 +32,6 @@ export default function DataControls({ onChanged }) {
     e.target.value = "";
   }
 
-  async function doClear() {
-    if (!confirm("Reset ALL data? This erases every transaction, subscription, and your settings, and returns you to setup. This cannot be undone.")) return;
-    await clearAll();
-    await loadSettings();
-    setMsg("All data reset.");
-    onChanged && onChanged();
-  }
-
   async function doSeed() {
     if (!confirm("Replace current data with demo data? This overwrites everything.")) return;
     const r = await seedDemoData();
@@ -66,9 +56,6 @@ export default function DataControls({ onChanged }) {
         className="hidden"
         onChange={doImport}
       />
-      <Button variant="danger" onClick={doClear}>
-        Reset all data
-      </Button>
       <Button variant="accent" onClick={doSeed}>
         Load demo data
       </Button>
