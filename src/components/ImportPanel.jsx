@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button, Card, Badge } from "../components/ui.jsx";
+import { Button, Card, Badge } from "./ui.jsx";
 import { parseBankCSV } from "../lib/csvParser.js";
 import { categorizeTransactions } from "../lib/categorizer.js";
 import { useSettings } from "../context/SettingsContext.jsx";
@@ -11,7 +11,7 @@ const SAMPLE = `date,description,amount
 2026-01-05,WHOLE FOODS MARKET,86.20
 2026-01-06,UBER TRIP,23.10`;
 
-export default function Import() {
+export default function ImportPanel() {
   const { settings } = useSettings();
   const { addTransactions } = useMoneyLens();
   const [text, setText] = useState(SAMPLE);
@@ -58,39 +58,38 @@ export default function Import() {
   }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold">Zero-Permission CSV Import</h1>
-        <p className="text-sm text-ink/60">
-          Drop in 3 months of bank CSV (date, description, amount). Stays on this device — nothing is
-          uploaded. The Lens normalizes merchants and applies the 6 standard buckets.
-        </p>
-      </header>
-
-      <Card>
-        <div className="flex items-center gap-3 mb-3">
-          <input type="file" accept=".csv,text/csv" onChange={onFile} className="text-sm" />
-          {fileName && <span className="text-xs text-ink/50">{fileName}</span>}
-        </div>
-        <textarea
-          className="w-full h-56 rounded-lg border border-ink/20 bg-white p-3 font-mono text-xs outline-none focus:ring-2 focus:ring-teal"
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-        />
-        <div className="mt-3 flex gap-3">
-          <Button onClick={previewCategorize} disabled={busy}>
-            {busy ? "…" : "Preview categorization"}
-          </Button>
-          <Button variant="teal" onClick={doImport} disabled={busy}>
-            Import
-          </Button>
-        </div>
-        {msg && <div className="mt-3 text-sm text-teal">{msg}</div>}
-      </Card>
+    <Card>
+      <div className="font-semibold mb-1">Bring in your bank data</div>
+      <p className="text-sm text-ink/60 mb-3">
+        Paste 3 months of bank CSV (date, description, amount) or drop the file. It stays on this
+        device only — nothing is uploaded.
+      </p>
+      <div className="flex items-center gap-3 mb-3">
+        <input type="file" accept=".csv,text/csv" onChange={onFile} className="text-sm" />
+        {fileName && <span className="text-xs text-ink/50">{fileName}</span>}
+      </div>
+      <textarea
+        className="w-full h-40 rounded-lg border border-ink/20 bg-white p-3 font-mono text-xs outline-none focus:ring-2 focus:ring-teal"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+      />
+      <div className="mt-3 flex gap-3">
+        <Button onClick={previewCategorize} disabled={busy}>
+          {busy ? "…" : "Preview categorization"}
+        </Button>
+        <Button variant="teal" onClick={doImport} disabled={busy}>
+          Import
+        </Button>
+      </div>
+      {msg && <div className="mt-3 text-sm text-teal">{msg}</div>}
 
       {preview && (
-        <Card>
-          <div className="font-semibold mb-3">Preview ({preview.length} rows)</div>
+        <div className="mt-4">
+          <div className="font-semibold mb-1">Preview ({preview.length} rows)</div>
+          <p className="text-sm text-ink/50 mb-3">
+            We guessed the right box for each. Any with a "?" is one we weren't sure about — you can
+            check those.
+          </p>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -113,9 +112,8 @@ export default function Import() {
               </tbody>
             </table>
           </div>
-        </Card>
+        </div>
       )}
-    </div>
+    </Card>
   );
 }
-

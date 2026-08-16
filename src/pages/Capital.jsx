@@ -57,10 +57,31 @@ export default function Capital() {
       <header>
         <h1 className="text-2xl font-extrabold">Capital Priority Pipeline</h1>
         <p className="text-sm text-ink/60">
-          Freed cash is systematically directed: emergency cushion → high-interest debt → sinking
-          funds → compounding wealth.
+          When you free up money (by cutting subscriptions), here's the smart order to use it — like
+          steps on a ladder, from the bottom to the top.
         </p>
       </header>
+
+      <Card className="bg-cream/40">
+        <div className="font-semibold mb-1">The steps, in plain words:</div>
+        <ul className="text-sm text-ink/70 space-y-1 list-disc list-inside">
+          <li>
+            <b>Emergency Cushion</b> — a rainy-day pile so a surprise doesn't hurt.
+          </li>
+          <li>
+            <b>High-Interest Debt</b> — paying it off is like earning free money (a guaranteed
+            return!).
+          </li>
+          <li>
+            <b>Sinking Funds</b> — little jars of money saved for things you know are coming, like
+            car repairs.
+          </li>
+          <li>
+            <b>Pay-Yourself-First</b> — let the leftover grow in a piggy bank that compounds (gets
+            bigger by itself).
+          </li>
+        </ul>
+      </Card>
 
       <div className="grid md:grid-cols-2 gap-4">
         <Card>
@@ -103,7 +124,8 @@ export default function Capital() {
         <Card>
           <div className="font-semibold">4 · Pay-Yourself-First Compounding</div>
           <p className="text-sm text-ink/70 mt-1">
-            Invest the recovered ${Math.round(recovered)}/mo at 7%:
+            Drop the recovered ${Math.round(recovered)}/mo into a piggy bank that grows by itself
+            (about 7% a year):
           </p>
           <div className="mt-3 flex gap-6">
             <div>

@@ -1,5 +1,6 @@
 import React from "react";
 import { MetricCard, Card, ProgressBar, Badge } from "../components/ui.jsx";
+import ImportPanel from "../components/ImportPanel.jsx";
 import { CATEGORIES } from "../lib/finance.js";
 import { loadSubscriptions, buildDashboard } from "../lib/store.js";
 import { useLiveData } from "../lib/useLiveData.js";
@@ -32,9 +33,12 @@ export default function Dashboard() {
       <header>
         <h1 className="text-2xl font-extrabold">Your 15-Minute Command Dashboard</h1>
         <p className="text-sm text-ink/60">
-          You can't fix what you can't see. Here are your real numbers.
+          You can't fix what you can't see. Here are your real numbers, like a report card for your
+          piggy bank!
         </p>
       </header>
+
+      <ImportPanel />
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <MetricCard label="Take-Home Income" value={`$${data.settings.monthlyTakeHome}`} />
@@ -57,6 +61,26 @@ export default function Dashboard() {
           hint="from cut/merged subs"
         />
       </div>
+
+      <Card className="bg-cream/40">
+        <div className="font-semibold mb-1">What do these numbers mean?</div>
+        <ul className="text-sm text-ink/70 space-y-1 list-disc list-inside">
+          <li>
+            <b>Take-Home Income</b> — the money that lands in your piggy bank after work.
+          </li>
+          <li>
+            <b>Net Savings Rate</b> — how much of that money you keep instead of spending. 20% or more
+            is great, like saving a cookie out of every five!
+          </li>
+          <li>
+            <b>Food + Fun</b> — snacks and play money. If it's more than 40% of your income, that's a
+            "leak" we'll warn you about.
+          </li>
+          <li>
+            <b>Leaks Recovered</b> — money you got back by cutting or merging subscriptions.
+          </li>
+        </ul>
+      </Card>
 
       {metrics.leakDetected && (
         <Card className="border-urgent/40">
@@ -86,7 +110,8 @@ export default function Dashboard() {
       <Card>
         <div className="font-semibold mb-2">Opportunity Cost Compounder</div>
         <p className="text-sm text-ink/70">
-          If you invest the <b>${compound.recovered}</b>/mo you've recovered at 7%:
+          If you drop the <b>${compound.recovered}</b>/mo you got back into a piggy bank that grows
+          by itself (about 7% a year), look how big it gets:
         </p>
         <div className="mt-3 flex gap-8">
           <div>

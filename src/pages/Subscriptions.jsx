@@ -109,8 +109,12 @@ export default function Subscriptions() {
       <header>
         <h1 className="text-2xl font-extrabold">Subscription Triage Desk</h1>
         <p className="text-sm text-ink/60">
-          Keep, Cut, or Merge every recurring charge. Ghost fees (unused &gt; 30 days) are flagged
-          automatically. Your data lives only in this browser.
+          A subscription is like a toy you pay a little money for again and again — every month or
+          every year. Let's look at which ones are worth keeping!
+        </p>
+        <p className="text-sm text-ink/50 mt-1">
+          Keep, Cut, or Merge every recurring charge. A "ghost fee" is a forgotten one we flag for
+          you. Your data stays only in this browser.
         </p>
       </header>
 
@@ -131,6 +135,23 @@ export default function Subscriptions() {
           <div className="text-xs text-ink/50 mt-1">{active.length} active</div>
         </Card>
       </div>
+
+      <Card className="bg-cream/40">
+        <div className="font-semibold mb-1">What do these numbers mean?</div>
+        <ul className="text-sm text-ink/70 space-y-1 list-disc list-inside">
+          <li>
+            <b>Active monthly</b> — money leaving your piggy bank each month for the toys you still
+            keep.
+          </li>
+          <li>
+            <b>Recovered</b> — money you got back by saying "no thanks" to some toys. If you save it,
+            it can grow bigger and bigger like a snowball!
+          </li>
+          <li>
+            <b>Tracked</b> — how many subscriptions you are keeping an eye on.
+          </li>
+        </ul>
+      </Card>
 
       <Card>
         <form onSubmit={add} className="flex gap-3 items-end flex-wrap">
@@ -171,7 +192,28 @@ export default function Subscriptions() {
         {error && <div className="text-urgent text-sm mt-2">{error}</div>}
       </Card>
 
-      <div className="grid md:grid-cols-2 gap-4">
+      <Card className="bg-cream/40">
+        <div className="font-semibold mb-1">What can I do with each one?</div>
+        <ul className="text-sm text-ink/70 space-y-1 list-disc list-inside">
+          <li>
+            <b>Keep</b> — "I still want this toy." It stays in your active list.
+          </li>
+          <li>
+            <b>Cut</b> — "Cancel it!" The money stops leaving and comes back to you.
+          </li>
+          <li>
+            <b>Merge</b> — "Use one instead of two." Like keeping Canva and dropping Adobe, so you
+            pay for just one.
+          </li>
+          <li>
+            <b>Ghost fee</b> — a forgotten subscription, like a toy in the closet that still takes
+            your money. We found it for you!
+          </li>
+        </ul>
+      </Card>
+
+<div id="table" className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4">
         {sorted.map((s) => (
           <Card key={s.id} className={s.ghost ? "border-urgent/40" : ""}>
             <div className="flex items-start justify-between">
@@ -229,7 +271,7 @@ export default function Subscriptions() {
           </Card>
         ))}
         {subs.length === 0 && (
-          <Card className="md:col-span-2 text-center text-ink/50 py-8">
+          <Card className="text-center text-ink/50 py-8">
             No subscriptions yet. Import a CSV and add the detected recurring charges above.
           </Card>
         )}
@@ -243,7 +285,8 @@ export default function Subscriptions() {
             </Button>
           </div>
           <p className="text-sm text-ink/60 mb-3">
-            Recurring charges we found in your imported data. Add them to start triaging.
+            We looked at your spending and found these repeating charges — like a toy you pay for
+            over and over. Tap Add to put them in your list.
           </p>
           <div className="space-y-2">
             {(detected || []).map((d) => (
@@ -265,6 +308,7 @@ export default function Subscriptions() {
           </div>
         </Card>
       )}
+      </div>
     </div>
   );
 }

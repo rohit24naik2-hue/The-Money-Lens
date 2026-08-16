@@ -6,7 +6,6 @@ import DataControls from "./DataControls.jsx";
 
 const NAV = [
   { to: "/dashboard", label: "Dashboard" },
-  { to: "/import", label: "Import & Categorize" },
   { to: "/subscriptions", label: "Subscriptions" },
   { to: "/capital", label: "Capital Plan" },
   { to: "/lenses", label: "The Crossovers" },

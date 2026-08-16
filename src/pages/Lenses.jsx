@@ -67,10 +67,28 @@ export default function Lenses() {
       <header>
         <h1 className="text-2xl font-extrabold">The Crossovers</h1>
         <p className="text-sm text-ink/60">
-          Every money decision evaluated through the lens of your real hourly rate — so the cost of
-          everything is measured in hours of your life.
+          Every money decision looked at through your real hourly rate — so the cost of everything is
+          measured in hours of your life. A $20 toy might cost you one hour of work!
         </p>
       </header>
+
+      <Card className="bg-cream/40">
+        <div className="font-semibold mb-1">The four big questions:</div>
+        <ul className="text-sm text-ink/70 space-y-1 list-disc list-inside">
+          <li>
+            <b>Rent vs Buy</b> — is it smarter to keep renting or to buy a house?
+          </li>
+          <li>
+            <b>AI Tool</b> — does a paid helper actually save you enough time to be worth it?
+          </li>
+          <li>
+            <b>Crypto</b> — only a tiny bit, like a lottery ticket, not your whole allowance.
+          </li>
+          <li>
+            <b>Insurance</b> — simple protection (term life) instead of fancy, pricey plans.
+          </li>
+        </ul>
+      </Card>
 
       <Card>
         <Label>Your hourly rate ($/hr)</Label>
