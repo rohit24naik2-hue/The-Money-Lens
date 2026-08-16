@@ -1,15 +1,15 @@
 import React, { useState } from "react";
 import { Button, Card, Badge } from "./ui.jsx";
-import { parseBankCSV } from "../lib/csvParser.js";
+import { parseAnyFormat } from "../lib/csvParser.js";
 import { categorizeTransactions } from "../lib/categorizer.js";
 import { useSettings } from "../context/SettingsContext.jsx";
 import { useMoneyLens } from "../context/MoneyLensContext.jsx";
 
-const SAMPLE = `date,description,amount
-2026-01-02,SQ *COFFEE,4.50
-2026-01-03,NETFLIX.COM,15.99
-2026-01-05,WHOLE FOODS MARKET,86.20
-2026-01-06,UBER TRIP,23.10`;
+const SAMPLE = `Dec 24, 2025 STARBUCKS 5.75
+2026-01-03 NETFLIX.COM $15.99
+01/05/2026 WHOLE FOODS MARKET 86.20
+2026-01-06 UBER TRIP (23.10)
+Jan 7, 2026 SHELL GAS 42.00 CR`;
 
 export default function ImportPanel() {
   const { settings } = useSettings();
@@ -31,7 +31,11 @@ export default function ImportPanel() {
     setBusy(true);
     setMsg("");
     try {
-      const rows = parseBankCSV(text);
+      const rows = parseAnyFormat(text);
+      if (rows.length === 0) {
+        setMsg("We couldn't find any transactions in that text. Try including a date and an amount per line.");
+        return;
+      }
       const result = await categorizeTransactions(rows, settings?.openaiApiKey);
       setPreview(result);
     } catch (err) {
@@ -45,7 +49,11 @@ export default function ImportPanel() {
     setBusy(true);
     setMsg("");
     try {
-      const rows = parseBankCSV(text);
+      const rows = parseAnyFormat(text);
+      if (rows.length === 0) {
+        setMsg("We couldn't find any transactions in that text. Try including a date and an amount per line.");
+        return;
+      }
       const result = await categorizeTransactions(rows, settings?.openaiApiKey);
       const n = await addTransactions(result);
       setMsg(`Imported ${n} transactions.`);
@@ -61,8 +69,9 @@ export default function ImportPanel() {
     <Card>
       <div className="font-semibold mb-1">Bring in your bank data</div>
       <p className="text-sm text-ink/60 mb-3">
-        Paste 3 months of bank CSV (date, description, amount) or drop the file. It stays on this
-        device only — nothing is uploaded.
+        Paste transactions in <strong>any format</strong> — clean CSV, a copied bank statement, or
+        receipt text like <em>"Dec 24, 2025 STARBUCKS 5.75"</em>. We pull out the date, merchant, and
+        amount. Or just drop a .csv file. It stays on this device only — nothing is uploaded.
       </p>
       <div className="flex items-center gap-3 mb-3">
         <input type="file" accept=".csv,text/csv" onChange={onFile} className="text-sm" />
