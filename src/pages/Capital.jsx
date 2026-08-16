@@ -100,23 +100,23 @@ export default function Capital() {
           </div>
         </Card>
 
-        <Card className="bg-ink text-cream">
+        <Card>
           <div className="font-semibold">4 · Pay-Yourself-First Compounding</div>
-          <p className="text-sm text-cream/70 mt-1">
+          <p className="text-sm text-ink/70 mt-1">
             Invest the recovered ${Math.round(recovered)}/mo at 7%:
           </p>
           <div className="mt-3 flex gap-6">
             <div>
               <div className="text-2xl font-extrabold text-positive">${tenYear.toLocaleString()}</div>
-              <div className="text-xs text-cream/60">10y</div>
+              <div className="text-xs text-ink/60">10y</div>
             </div>
             <div>
               <div className="text-2xl font-extrabold text-positive">${twentyYear.toLocaleString()}</div>
-              <div className="text-xs text-cream/60">20y</div>
+              <div className="text-xs text-ink/60">20y</div>
             </div>
             <div>
               <div className="text-2xl font-extrabold text-positive">${thirtyYear.toLocaleString()}</div>
-              <div className="text-xs text-cream/60">30y</div>
+              <div className="text-xs text-ink/60">30y</div>
             </div>
           </div>
         </Card>

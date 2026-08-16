@@ -83,23 +83,23 @@ export default function Dashboard() {
         </div>
       </Card>
 
-      <Card className="bg-ink text-cream">
+      <Card>
         <div className="font-semibold mb-2">Opportunity Cost Compounder</div>
-        <p className="text-sm text-cream/70">
+        <p className="text-sm text-ink/70">
           If you invest the <b>${compound.recovered}</b>/mo you've recovered at 7%:
         </p>
         <div className="mt-3 flex gap-8">
           <div>
             <div className="text-2xl font-extrabold text-positive">${compound.tenYear.toLocaleString()}</div>
-            <div className="text-xs text-cream/60">in 10 years</div>
+            <div className="text-xs text-ink/60">in 10 years</div>
           </div>
           <div>
             <div className="text-2xl font-extrabold text-positive">${compound.twentyYear.toLocaleString()}</div>
-            <div className="text-xs text-cream/60">in 20 years</div>
+            <div className="text-xs text-ink/60">in 20 years</div>
           </div>
           <div>
             <div className="text-2xl font-extrabold text-positive">${compound.thirtyYear.toLocaleString()}</div>
-            <div className="text-xs text-cream/60">in 30 years</div>
+            <div className="text-xs text-ink/60">in 30 years</div>
           </div>
         </div>
       </Card>

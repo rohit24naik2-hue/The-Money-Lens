@@ -208,17 +208,17 @@ export default function Lenses() {
           )}
         </Card>
 
-        <Card className="bg-ink text-cream md:col-span-2">
+        <Card className="md:col-span-2">
           <div className="font-semibold">Decision Log</div>
-          <p className="text-xs text-cream/60 mt-1">Everything you've judged through the Lens.</p>
+          <p className="text-xs text-ink/60 mt-1">Everything you've judged through the Lens.</p>
           <div className="mt-3 space-y-2">
-            {(!decisions || decisions.length === 0) && <div className="text-xs text-cream/40">No decisions logged yet.</div>}
+            {(!decisions || decisions.length === 0) && <div className="text-xs text-ink/40">No decisions logged yet.</div>}
             {(decisions || []).map((d) => (
               <div key={d.id} className="flex justify-between items-center text-sm">
-                <span className="text-cream/80">{d.text}</span>
+                <span className="text-ink/80">{d.text}</span>
                 <Button
                   variant="ghost"
-                  className="text-cream/50 text-xs"
+                  className="text-ink/50 text-xs"
                   onClick={() => deleteDecision(d.id)}
                 >
                   ×
