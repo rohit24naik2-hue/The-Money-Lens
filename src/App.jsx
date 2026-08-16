@@ -7,6 +7,7 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Subscriptions from "./pages/Subscriptions.jsx";
 import Capital from "./pages/Capital.jsx";
 import Lenses from "./pages/Lenses.jsx";
+import Assets from "./pages/Assets.jsx";
 
 export default function App() {
   const { settings, loadSettings, editing } = useSettings();
@@ -34,6 +35,7 @@ export default function App() {
           <Route path="/subscriptions" element={<Subscriptions />} />
           <Route path="/capital" element={<Capital />} />
           <Route path="/lenses" element={<Lenses />} />
+          <Route path="/assets" element={<Assets />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </Layout>

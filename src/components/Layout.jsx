@@ -10,6 +10,7 @@ const NAV = [
   { to: "/subscriptions", label: "Subscriptions" },
   { to: "/capital", label: "Capital Plan" },
   { to: "/lenses", label: "The Crossovers" },
+  { to: "/assets", label: "Assets" },
 ];
 
 export default function Layout({ children }) {
